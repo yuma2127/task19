@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>施設予約システム</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-100 min-h-screen text-slate-800 p-4">
+  <div class="max-w-2xl mx-auto bg-white rounded-xl shadow-md p-6">
+    <header class="flex justify-between items-center border-b pb-4 mb-6">
+      <h1 class="text-2xl font-bold text-indigo-600">施設予約システム</h1>
+      <div id="auth-section">
+        <button id="login-btn" class="bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 px-4 rounded-lg transition">
+          Googleでログイン
+        </button>
+        <div id="user-info" class="hidden flex items-center gap-3">
+          <span id="user-name" class="font-medium text-sm text-slate-600"></span>
+          <button id="logout-btn" class="bg-slate-200 hover:bg-slate-300 text-slate-700 text-sm font-medium py-1 px-3 rounded-lg transition">
+            ログアウト
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <!-- 予約フォーム -->
+    <section id="reservation-form-section" class="mb-8 hidden">
+      <h2 class="text-lg font-semibold mb-3">新規予約を記録</h2>
+      <form id="reservation-form" class="space-y-4">
+        <div>
+          <label class="block text-sm font-medium text-slate-600 mb-1">対象施設</label>
+          <select id="facility" class="w-full border rounded-lg p-2 focus:ring-2 focus:ring-indigo-500 outline-none" required>
+            <option value="体育館">体育館</option>
+            <option value="第1実習室">第1実習室</option>
+            <option value="第2実習室">第2実習室</option>
+            <option value="会議室">会議室</option>
+          </select>
+        </div>
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm font-medium text-slate-600 mb-1">日付</label>
+            <input type="date" id="reserve-date" class="w-full border rounded-lg p-2 focus:ring-2 focus:ring-indigo-500 outline-none" required>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-slate-600 mb-1">時間帯</label>
+            <input type="time" id="reserve-time" class="w-full border rounded-lg p-2 focus:ring-2 focus:ring-indigo-500 outline-none" required>
+          </div>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-slate-600 mb-1">使用目的・備考</label>
+          <input type="text" id="purpose" placeholder="例: サークル練習" class="w-full border rounded-lg p-2 focus:ring-2 focus:ring-indigo-500 outline-none" required>
+        </div>
+        <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 rounded-lg transition">
+          予約を登録する
+        </button>
+      </form>
+    </section>
+
+    <!-- 予約一覧 -->
+    <section>
+      <h2 class="text-lg font-semibold mb-3">現在の予約一覧</h2>
+      <div id="reservation-list" class="space-y-3">
+        <p class="text-slate-400 text-sm text-center py-4">ログインすると予約一覧の表示・追加ができます。</p>
+      </div>
+    </section>
+  </div>
+
+  <!-- Firebase SDK (v10 modular) -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+    import { getAuth, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+    import { getFirestore, collection, addDoc, onSnapshot, query, orderBy, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+    // Firebaseの設定（ご自身のプロジェクト設定値に置き換えてください）
+    const firebaseConfig = {
+      apiKey: "YOUR_API_KEY",
+      authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+      projectId: "YOUR_PROJECT_ID",
+      storageBucket: "YOUR_PROJECT_ID.appspot.com",
+      messagingSenderId: "YOUR_SENDER_ID",
+      appId: "YOUR_APP_ID"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+    const provider = new GoogleAuthProvider();
+
+    let currentUser = null;
+
+    // ログイン・ログアウト処理
+    document.getElementById("login-btn").addEventListener("click", () => signInWithPopup(auth, provider));
+    document.getElementById("logout-btn").addEventListener("click", () => signOut(auth));
+
+    // 認証状態の監視
+    onAuthStateChanged(auth, (user) => {
+      currentUser = user;
+      const loginBtn = document.getElementById("login-btn");
+      const userInfo = document.getElementById("user-info");
+      const formSection = document.getElementById("reservation-form-section");
+
+      if (user) {
+        loginBtn.classList.add("hidden");
+        userInfo.classList.remove("hidden");
+        formSection.classList.remove("hidden");
+        document.getElementById("user-name").textContent = user.displayName;
+        loadReservations();
+      } else {
+        loginBtn.classList.remove("hidden");
+        userInfo.classList.add("hidden");
+        formSection.classList.add("hidden");
+        document.getElementById("reservation-list").innerHTML = 
+          '<p class="text-slate-400 text-sm text-center py-4">ログインすると予約一覧の表示・追加ができます。</p>';
+      }
+    });
+
+    // 予約の新規追加
+    document.getElementById("reservation-form").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      if (!currentUser) return;
+
+      const facility = document.getElementById("facility").value;
+      const date = document.getElementById("reserve-date").value;
+      const time = document.getElementById("reserve-time").value;
+      const purpose = document.getElementById("purpose").value;
+
+      try {
+        await addDoc(collection(db, "reservations"), {
+          facility,
+          date,
+          time,
+          purpose,
+          userName: currentUser.displayName,
+          userId: currentUser.uid,
+          createdAt: serverTimestamp()
+        });
+        document.getElementById("reservation-form").reset();
+      } catch (error) {
+        console.error("予約の追加に失敗しました:", error);
+      }
+    });
+
+    // 予約データのリアルタイム取得
+    function loadReservations() {
+      const q = query(collection(db, "reservations"), orderBy("createdAt", "desc"));
+      onSnapshot(q, (snapshot) => {
+        const listEl = document.getElementById("reservation-list");
+        listEl.innerHTML = "";
+
+        if (snapshot.empty) {
+          listEl.innerHTML = '<p class="text-slate-400 text-sm text-center py-4">予約はありません。</p>';
+          return;
+        }
+
+        snapshot.forEach((doc) => {
+          const res = doc.data();
+          const card = document.createElement("div");
+          card.className = "p-4 border border-slate-200 rounded-lg bg-slate-50 flex justify-between items-center";
+          card.innerHTML = `
+            <div>
+              <div class="font-bold text-indigo-700">${res.facility}</div>
+              <div class="text-sm text-slate-600">${res.date} ${res.time} 〜 (${res.purpose})</div>
+              <div class="text-xs text-slate-400 mt-1">予約者: ${res.userName}</div>
+            </div>
+          `;
+          listEl.appendChild(card);
+        });
+      });
+    }
+  </script>
+</body>
+</html>
