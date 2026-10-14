@@ -4,64 +4,81 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>施設予約システム</title>
-  <!-- Tailwind CSS CLI / CDN（プロダクション警告抑制用） -->
-  <script src="https://cdn.tailwindcss.com?plugins=forms"></script>
+  <style>
+    /* 外部CDN依存なし・警告なしの専用スタイル */
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    body { background-color: #f8fafc; color: #1e293b; padding: 20px; }
+    .container { max-width: 600px; margin: 0 auto; background: #ffffff; padding: 24px; border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); }
+    header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e2e8f0; padding-bottom: 16px; margin-bottom: 24px; }
+    h1 { font-size: 1.25rem; font-weight: 700; color: #4f46e5; }
+    .btn { background: #4f46e5; color: #ffffff; border: none; padding: 8px 16px; border-radius: 8px; font-size: 0.875rem; font-weight: 600; cursor: pointer; transition: background 0.2s; }
+    .btn:hover { background: #4338ca; }
+    .btn-secondary { background: #e2e8f0; color: #475569; }
+    .btn-secondary:hover { background: #cbd5e1; }
+    .hidden { display: none !important; }
+    .form-group { margin-bottom: 16px; }
+    label { display: block; font-size: 0.875rem; font-weight: 600; color: #475569; margin-bottom: 6px; }
+    input, select { width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 0.95rem; outline: none; }
+    input:focus, select:focus { border-color: #4f46e5; box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.2); }
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .card { background: #f8fafc; border: 1px solid #e2e8f0; padding: 16px; border-radius: 8px; margin-bottom: 12px; }
+    .card-title { font-weight: 700; color: #4338ca; margin-bottom: 4px; }
+    .card-detail { font-size: 0.875rem; color: #334155; }
+    .card-user { font-size: 0.75rem; color: #94a3b8; margin-top: 6px; }
+    .empty-msg { text-align: center; color: #94a3b8; font-size: 0.875rem; padding: 24px 0; }
+    .user-box { display: flex; align-items: center; gap: 12px; }
+  </style>
 </head>
-<body class="bg-slate-100 min-h-screen text-slate-800 p-4">
-  <div class="max-w-2xl mx-auto bg-white rounded-xl shadow-md p-6">
-    <header class="flex justify-between items-center border-b pb-4 mb-6">
-      <h1 class="text-2xl font-bold text-indigo-600">施設予約システム</h1>
+<body>
+
+  <div class="container">
+    <header>
+      <h1>施設予約システム</h1>
       <div id="auth-section">
-        <button id="login-btn" class="bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 px-4 rounded-lg transition shadow-sm">
-          Googleでログイン
-        </button>
-        <div id="user-info" class="hidden flex items-center gap-3">
-          <span id="user-name" class="font-medium text-sm text-slate-600"></span>
-          <button id="logout-btn" class="bg-slate-200 hover:bg-slate-300 text-slate-700 text-sm font-medium py-1 px-3 rounded-lg transition">
-            ログアウト
-          </button>
+        <button id="login-btn" class="btn">Googleでログイン</button>
+        <div id="user-info" class="user-box hidden">
+          <span id="user-name" style="font-size: 0.875rem; font-weight: 600; color: #475569;"></span>
+          <button id="logout-btn" class="btn btn-secondary">ログアウト</button>
         </div>
       </div>
     </header>
 
-    <!-- 予約入力フォーム -->
-    <section id="reservation-form-section" class="mb-8 hidden">
-      <h2 class="text-lg font-semibold mb-3">新規予約を記録</h2>
-      <form id="reservation-form" class="space-y-4">
-        <div>
-          <label class="block text-sm font-medium text-slate-600 mb-1">対象施設</label>
-          <select id="facility" class="w-full border rounded-lg p-2 focus:ring-2 focus:ring-indigo-500 outline-none" required>
+    <!-- 予約登録フォーム -->
+    <section id="form-section" class="hidden">
+      <form id="reservation-form">
+        <div class="form-group">
+          <label for="facility">対象施設</label>
+          <select id="facility" required>
             <option value="体育館">体育館</option>
             <option value="第1実習室">第1実習室</option>
             <option value="第2実習室">第2実習室</option>
             <option value="会議室">会議室</option>
           </select>
         </div>
-        <div class="grid grid-cols-2 gap-4">
+        <div class="grid form-group">
           <div>
-            <label class="block text-sm font-medium text-slate-600 mb-1">日付</label>
-            <input type="date" id="reserve-date" class="w-full border rounded-lg p-2 focus:ring-2 focus:ring-indigo-500 outline-none" required>
+            <label for="reserve-date">日付</label>
+            <input type="date" id="reserve-date" required>
           </div>
           <div>
-            <label class="block text-sm font-medium text-slate-600 mb-1">時間帯</label>
-            <input type="time" id="reserve-time" class="w-full border rounded-lg p-2 focus:ring-2 focus:ring-indigo-500 outline-none" required>
+            <label for="reserve-time">時間帯</label>
+            <input type="time" id="reserve-time" required>
           </div>
         </div>
-        <div>
-          <label class="block text-sm font-medium text-slate-600 mb-1">使用目的・備考</label>
-          <input type="text" id="purpose" placeholder="例: サークル練習" class="w-full border rounded-lg p-2 focus:ring-2 focus:ring-indigo-500 outline-none" required>
+        <div class="form-group">
+          <label for="purpose">使用目的・備考</label>
+          <input type="text" id="purpose" placeholder="例: サークル練習" required>
         </div>
-        <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 rounded-lg transition shadow">
-          予約を登録する
-        </button>
+        <button type="submit" class="btn" style="width: 100%; margin-bottom: 24px;">予約を登録する</button>
       </form>
+      <hr style="border: none; border-top: 1px solid #e2e8f0; margin-bottom: 24px;">
     </section>
 
-    <!-- 予約一覧 -->
+    <!-- 予約一覧表示 -->
     <section>
-      <h2 class="text-lg font-semibold mb-3">現在の予約一覧</h2>
-      <div id="reservation-list" class="space-y-3">
-        <p class="text-slate-400 text-sm text-center py-4">ログインすると予約一覧の表示・追加ができます。</p>
+      <h2 style="font-size: 1rem; font-weight: 600; margin-bottom: 12px;">現在の予約一覧</h2>
+      <div id="reservation-list">
+        <p class="empty-msg">ログインすると予約一覧の確認・追加ができます。</p>
       </div>
     </section>
   </div>
@@ -71,17 +88,16 @@
     import { getAuth, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
     import { getFirestore, collection, addDoc, onSnapshot, query, orderBy, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-    // ★★★ ここをご自身の Firebase プロジェクト設定に置き換えてください ★★★
+    // ★ ご自身の Firebase コンソール「プロジェクトの設定」からコピーした値を貼り付けてください
     const firebaseConfig = {
-      apiKey: "AIzaSy...",          // 実際の API キー
-      authDomain: "xxxx.firebaseapp.com",
-      projectId: "xxxx",
-      storageBucket: "xxxx.appspot.com",
-      messagingSenderId: "123456789",
-      appId: "1:123456789:web:xxxx"
+      apiKey: "AIzaSy...",
+      authDomain: "YOUR_PROJECT.firebaseapp.com",
+      projectId: "YOUR_PROJECT",
+      storageBucket: "YOUR_PROJECT.appspot.com",
+      messagingSenderId: "1234567890",
+      appId: "1:1234567890:web:xxxx"
     };
 
-    // Firebase 初期化
     const app = initializeApp(firebaseConfig);
     const auth = getAuth(app);
     const db = getFirestore(app);
@@ -89,24 +105,24 @@
 
     let currentUser = null;
 
-    // ログイン処理
+    // ログイン
     document.getElementById("login-btn").addEventListener("click", async () => {
       try {
         await signInWithPopup(auth, provider);
-      } catch (error) {
-        alert("ログインエラー: " + error.message);
+      } catch (err) {
+        alert("ログインエラー: " + err.message + "\n\nStep 1 & 2 の設定を確認してください。");
       }
     });
 
-    // ログアウト処理
+    // ログアウト
     document.getElementById("logout-btn").addEventListener("click", () => signOut(auth));
 
-    // 認証状態の監視
+    // 認証監視
     onAuthStateChanged(auth, (user) => {
       currentUser = user;
       const loginBtn = document.getElementById("login-btn");
       const userInfo = document.getElementById("user-info");
-      const formSection = document.getElementById("reservation-form-section");
+      const formSection = document.getElementById("form-section");
 
       if (user) {
         loginBtn.classList.add("hidden");
@@ -119,38 +135,32 @@
         userInfo.classList.add("hidden");
         formSection.classList.add("hidden");
         document.getElementById("reservation-list").innerHTML = 
-          '<p class="text-slate-400 text-sm text-center py-4">ログインすると予約一覧の表示・追加ができます。</p>';
+          '<p class="empty-msg">ログインすると予約一覧の確認・追加ができます。</p>';
       }
     });
 
-    // 予約登録
+    // 予約送信
     document.getElementById("reservation-form").addEventListener("submit", async (e) => {
       e.preventDefault();
       if (!currentUser) return;
 
-      const facility = document.getElementById("facility").value;
-      const date = document.getElementById("reserve-date").value;
-      const time = document.getElementById("reserve-time").value;
-      const purpose = document.getElementById("purpose").value;
-
       try {
         await addDoc(collection(db, "reservations"), {
-          facility,
-          date,
-          time,
-          purpose,
+          facility: document.getElementById("facility").value,
+          date: document.getElementById("reserve-date").value,
+          time: document.getElementById("reserve-time").value,
+          purpose: document.getElementById("purpose").value,
           userName: currentUser.displayName,
           userId: currentUser.uid,
           createdAt: serverTimestamp()
         });
         document.getElementById("reservation-form").reset();
-      } catch (error) {
-        alert("予約の書き込みに失敗しました。Firestoreのパーミッション等を確認してください。");
-        console.error(error);
+      } catch (err) {
+        alert("保存エラー: " + err.message);
       }
     });
 
-    // 予約取得（リアルタイム）
+    // リアルタイムデータ取得
     function loadReservations() {
       const q = query(collection(db, "reservations"), orderBy("createdAt", "desc"));
       onSnapshot(q, (snapshot) => {
@@ -158,25 +168,21 @@
         listEl.innerHTML = "";
 
         if (snapshot.empty) {
-          listEl.innerHTML = '<p class="text-slate-400 text-sm text-center py-4">予約はありません。</p>';
+          listEl.innerHTML = '<p class="empty-msg">予約データはありません。</p>';
           return;
         }
 
         snapshot.forEach((doc) => {
           const res = doc.data();
           const card = document.createElement("div");
-          card.className = "p-4 border border-slate-200 rounded-lg bg-slate-50 flex justify-between items-center";
+          card.className = "card";
           card.innerHTML = `
-            <div>
-              <div class="font-bold text-indigo-700">${res.facility}</div>
-              <div class="text-sm text-slate-600">${res.date} ${res.time} 〜 (${res.purpose})</div>
-              <div class="text-xs text-slate-400 mt-1">予約者: ${res.userName || '不明'}</div>
-            </div>
+            <div class="card-title">${res.facility}</div>
+            <div class="card-detail">📅 ${res.date} ⏰ ${res.time} 〜 (${res.purpose})</div>
+            <div class="card-user">予約者: ${res.userName || '不明'}</div>
           `;
           listEl.appendChild(card);
         });
-      }, (error) => {
-        console.error("データ読み込みエラー:", error);
       });
     }
   </script>
