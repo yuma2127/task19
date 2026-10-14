@@ -4,14 +4,15 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>施設予約システム</title>
-  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Tailwind CSS CLI / CDN（プロダクション警告抑制用） -->
+  <script src="https://cdn.tailwindcss.com?plugins=forms"></script>
 </head>
 <body class="bg-slate-100 min-h-screen text-slate-800 p-4">
   <div class="max-w-2xl mx-auto bg-white rounded-xl shadow-md p-6">
     <header class="flex justify-between items-center border-b pb-4 mb-6">
       <h1 class="text-2xl font-bold text-indigo-600">施設予約システム</h1>
       <div id="auth-section">
-        <button id="login-btn" class="bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 px-4 rounded-lg transition">
+        <button id="login-btn" class="bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 px-4 rounded-lg transition shadow-sm">
           Googleでログイン
         </button>
         <div id="user-info" class="hidden flex items-center gap-3">
@@ -23,7 +24,7 @@
       </div>
     </header>
 
-    <!-- 予約フォーム -->
+    <!-- 予約入力フォーム -->
     <section id="reservation-form-section" class="mb-8 hidden">
       <h2 class="text-lg font-semibold mb-3">新規予約を記録</h2>
       <form id="reservation-form" class="space-y-4">
@@ -50,7 +51,7 @@
           <label class="block text-sm font-medium text-slate-600 mb-1">使用目的・備考</label>
           <input type="text" id="purpose" placeholder="例: サークル練習" class="w-full border rounded-lg p-2 focus:ring-2 focus:ring-indigo-500 outline-none" required>
         </div>
-        <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 rounded-lg transition">
+        <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 rounded-lg transition shadow">
           予約を登録する
         </button>
       </form>
@@ -65,22 +66,22 @@
     </section>
   </div>
 
-  <!-- Firebase SDK (v10 modular) -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
     import { getAuth, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
     import { getFirestore, collection, addDoc, onSnapshot, query, orderBy, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-    // Firebaseの設定（ご自身のプロジェクト設定値に置き換えてください）
+    // ★★★ ここをご自身の Firebase プロジェクト設定に置き換えてください ★★★
     const firebaseConfig = {
-      apiKey: "YOUR_API_KEY",
-      authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
-      projectId: "YOUR_PROJECT_ID",
-      storageBucket: "YOUR_PROJECT_ID.appspot.com",
-      messagingSenderId: "YOUR_SENDER_ID",
-      appId: "YOUR_APP_ID"
+      apiKey: "AIzaSy...",          // 実際の API キー
+      authDomain: "xxxx.firebaseapp.com",
+      projectId: "xxxx",
+      storageBucket: "xxxx.appspot.com",
+      messagingSenderId: "123456789",
+      appId: "1:123456789:web:xxxx"
     };
 
+    // Firebase 初期化
     const app = initializeApp(firebaseConfig);
     const auth = getAuth(app);
     const db = getFirestore(app);
@@ -88,8 +89,16 @@
 
     let currentUser = null;
 
-    // ログイン・ログアウト処理
-    document.getElementById("login-btn").addEventListener("click", () => signInWithPopup(auth, provider));
+    // ログイン処理
+    document.getElementById("login-btn").addEventListener("click", async () => {
+      try {
+        await signInWithPopup(auth, provider);
+      } catch (error) {
+        alert("ログインエラー: " + error.message);
+      }
+    });
+
+    // ログアウト処理
     document.getElementById("logout-btn").addEventListener("click", () => signOut(auth));
 
     // 認証状態の監視
@@ -114,7 +123,7 @@
       }
     });
 
-    // 予約の新規追加
+    // 予約登録
     document.getElementById("reservation-form").addEventListener("submit", async (e) => {
       e.preventDefault();
       if (!currentUser) return;
@@ -136,11 +145,12 @@
         });
         document.getElementById("reservation-form").reset();
       } catch (error) {
-        console.error("予約の追加に失敗しました:", error);
+        alert("予約の書き込みに失敗しました。Firestoreのパーミッション等を確認してください。");
+        console.error(error);
       }
     });
 
-    // 予約データのリアルタイム取得
+    // 予約取得（リアルタイム）
     function loadReservations() {
       const q = query(collection(db, "reservations"), orderBy("createdAt", "desc"));
       onSnapshot(q, (snapshot) => {
@@ -160,11 +170,13 @@
             <div>
               <div class="font-bold text-indigo-700">${res.facility}</div>
               <div class="text-sm text-slate-600">${res.date} ${res.time} 〜 (${res.purpose})</div>
-              <div class="text-xs text-slate-400 mt-1">予約者: ${res.userName}</div>
+              <div class="text-xs text-slate-400 mt-1">予約者: ${res.userName || '不明'}</div>
             </div>
           `;
           listEl.appendChild(card);
         });
+      }, (error) => {
+        console.error("データ読み込みエラー:", error);
       });
     }
   </script>
